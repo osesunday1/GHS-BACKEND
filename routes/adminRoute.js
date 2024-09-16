@@ -14,7 +14,7 @@ const {
   getTotalAmountPaidPerMonth
 } = bookingController;
 
-// Admin Routes
+//Admin Routes
 
 // Route to get total bookings over a specified period
 router.get('/bookings/total', getTotalBookings);
