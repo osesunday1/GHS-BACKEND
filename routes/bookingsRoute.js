@@ -16,10 +16,8 @@ router
 
 router
     .route(`/:id`)
-    .put(protect, updateBooking)
-    .delete(protect, 
-        authController.restrictTo('admin'), 
-        deleteBooking )    
+    .put(protect, authController.restrictTo('admin'), updateBooking)
+    .delete(protect, authController.restrictTo('admin'), deleteBooking )    
 
 
 module.exports = router;
