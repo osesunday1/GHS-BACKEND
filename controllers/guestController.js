@@ -64,8 +64,13 @@ exports.updateGuest = async (req, res, next) => {
         return next(new HttpError('Guest not found', 404));
       }
   
-      // Delete all bookings associated with this guest
+          // Check if the guest has any associated bookings
+    const bookings = await BookingModel.find({ guest: guestId });
+    
+    if (bookings.length > 0) {
+      // If the guest has bookings, delete them
       await BookingModel.deleteMany({ guest: guestId });
+    }
   
       // Delete the guest using deleteOne or findByIdAndDelete
       await GuestModel.findByIdAndDelete(guestId);
