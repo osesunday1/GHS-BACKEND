@@ -5,15 +5,13 @@ const ApartmentModel = require('../model/apartmentModel');
 // Create a new apartment
 exports.createApartment = async (req, res, next) => {
     try {
-      const { name, type, description, maxGuests, images, location } = req.body;
+      const { name, type, description, maxGuests } = req.body;
   
       const newApartment = new ApartmentModel({
         name,
         type,
         description,
-        maxGuests,
-        images,
-        location
+        maxGuests
       });
   
       await newApartment.save();

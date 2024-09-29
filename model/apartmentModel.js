@@ -19,9 +19,6 @@ const apartmentSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Maximum number of guests is required']
   },
-  images: {
-    type: [String], // Array of image URLs or paths
-  },
  
 }, { timestamps: true });
 
