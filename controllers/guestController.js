@@ -1,6 +1,6 @@
 const GuestModel = require('../model/guestModel');
 const HttpError = require('../utils/httpError');
-
+const BookingModel= require('../model/bookingsModel')
 
 
 
