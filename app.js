@@ -10,6 +10,7 @@ const adminRoutes= require('./routes/adminRoute');
 const inventoryRoutes= require('./routes/inventoryRoute');
 const consumptionRoutes= require('./routes/consumptionRoute');
 const userRoutes= require('./routes/userRoutes')
+const emailRoutes = require('./routes/emailRoute');  // Add the email route here
 const cors = require('cors');
 
 dotenv.config();
@@ -54,6 +55,7 @@ app.use('/api/v1/guests', guestRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
 app.use('/api/v1/consumption', consumptionRoutes);
+app.use('/api/v1/email', emailRoutes);
 
 
 // If no route is found
