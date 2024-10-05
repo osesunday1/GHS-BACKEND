@@ -5,7 +5,7 @@ const nodemailer = require('nodemailer');
 
 // Define the email sending function
 exports.sendEmail = async (req, res) => {
-  const { to, subject, text, html } = req.body; // Destructure the email data from the request body
+  const { firstName, lastName, email, number, checkInDate, checkOutDate } = req.body; // Destructure the form data
 
   // Create a transporter object with SMTP details
   let transporter = nodemailer.createTransport({
@@ -16,22 +16,34 @@ exports.sendEmail = async (req, res) => {
     },
   });
 
-  // Set up the email message object
+  // Customize the subject and email content to reflect the reservation details
   let mailOptions = {
     from: process.env.FROM_EMAIL, // Sender address from environment variables
-    to: to || 'ghsapartment@gmail.com', // Recipient email address (with fallback)
-    subject: subject || 'Hello from Node.js', // Default subject if not provided
-    text: text || 'This is a test email sent from a Node.js application.', // Default text
-    html: html || '<b>This is a test email sent from a Node.js application.</b>', // Default HTML content
+    to: process.env.FROM_EMAIL, // Your email address where you'd receive the form submissions
+    subject: `New Reservation Request from ${firstName} ${lastName}`, // Subject for reservation request
+    text: `Reservation Request Details:\n\n
+           Name: ${firstName} ${lastName}\n
+           Email: ${email}\n
+           Phone Number: ${number}\n
+           Check-In Date: ${checkInDate}\n
+           Check-Out Date: ${checkOutDate}`,
+    html: `
+      <h3>New Reservation Request from ${firstName} ${lastName}</h3>
+      <p><strong>Name:</strong> ${firstName} ${lastName}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Phone Number:</strong> ${number}</p>
+      <p><strong>Check-In Date:</strong> ${checkInDate}</p>
+      <p><strong>Check-Out Date:</strong> ${checkOutDate}</p>
+    `,
   };
 
   try {
     // Send the email using Nodemailer
     let info = await transporter.sendMail(mailOptions);
     console.log('Email sent: ' + info.response);
-    res.status(200).json({ message: 'Email sent successfully' });
+    res.status(200).json({ message: 'Reservation request sent successfully' });
   } catch (error) {
     console.error('Error sending email:', error); // Log error
-    res.status(500).json({ error: 'Failed to send email' });
+    res.status(500).json({ error: 'Failed to send reservation request' });
   }
 };
