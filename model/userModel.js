@@ -26,6 +26,12 @@ const userSchema = new mongoose.Schema({
         enum: ['staff', 'admin'],
         default:'staff'
     },
+
+    position:{
+        type: String,
+        enum: ['Cleaner', 'Manager', 'Customer Support Representative', 'Social Media Manager', 'Security'],
+        default:'Customer Support Representative'
+    },
     password:{
         type: String,
         required: [true, 'Please provide password'],

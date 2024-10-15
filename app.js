@@ -10,6 +10,7 @@ const adminRoutes= require('./routes/adminRoute');
 const inventoryRoutes= require('./routes/inventoryRoute');
 const consumptionRoutes= require('./routes/consumptionRoute');
 const userRoutes= require('./routes/userRoutes')
+const staffTimeTable= require('./routes/staffTimetableRoute')
 const emailRoutes = require('./routes/emailRoute');  // Add the email route here
 const cors = require('cors');
 
@@ -56,6 +57,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
 app.use('/api/v1/consumption', consumptionRoutes);
 app.use('/api/v1/email', emailRoutes);
+app.use('/api/v1/timetable', staffTimeTable);
 
 
 // If no route is found

@@ -11,7 +11,7 @@ const filterObj =(obj, ...allowedfields)=>{
   return newObject;
 }
 
-// Controller function to retrieve all guests
+// Controller function to retrieve all users
 exports.getAllUsers = async (req, res, next) => {
     try {
       // Retrieve all guests from the database
