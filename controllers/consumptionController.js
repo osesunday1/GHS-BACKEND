@@ -7,7 +7,6 @@ const HttpError = require('../utils/httpError');
 exports.createConsumptionRecord = async (req, res, next) => {
     try {
         const { guestId, items } = req.body;
-
         let totalAmount = 0;
 
         // Check if each inventory item exists and calculate the amount
@@ -16,8 +15,16 @@ exports.createConsumptionRecord = async (req, res, next) => {
             if (!inventoryItem) {
                 throw new HttpError(`Inventory item with ID ${item.inventoryItemId} not found`, 404);
             }
+            if (inventoryItem.quantity < item.quantity) {
+                throw new HttpError(`Not enough quantity of ${inventoryItem.item} in inventory`, 400);
+            }
+
             item.amount = item.quantity * inventoryItem.price;
             totalAmount += item.amount;
+
+            // Deduct item quantity from inventory
+            inventoryItem.quantity -= item.quantity;
+            await inventoryItem.save();
         }
 
         // Create the consumption record
@@ -38,6 +45,10 @@ exports.createConsumptionRecord = async (req, res, next) => {
         return next(new HttpError(error.message || 'Creating consumption record failed, please try again', 500));
     }
 };
+
+
+
+
 
 // Get all consumption records
 exports.getAllConsumptionRecords = async (req, res, next) => {
@@ -95,16 +106,33 @@ exports.updateConsumptionRecord = async (req, res, next) => {
             return next(new HttpError('Consumption record not found', 404));
         }
 
+        // Revert inventory quantities based on the original consumption record
+        for (const originalItem of consumption.items) {
+            const inventoryItem = await InventoryModel.findById(originalItem.inventoryItemId);
+            if (inventoryItem) {
+                inventoryItem.quantity += originalItem.quantity;
+                await inventoryItem.save();
+            }
+        }
+
+        // Update items with new quantities and recalculate total amount
         let totalAmount = 0;
 
-        // Validate and recalculate the amount for each item
         for (const item of items) {
             const inventoryItem = await InventoryModel.findById(item.inventoryItemId);
             if (!inventoryItem) {
                 return next(new HttpError(`Inventory item with ID ${item.inventoryItemId} not found`, 404));
             }
+            if (inventoryItem.quantity < item.quantity) {
+                throw new HttpError(`Not enough quantity of ${inventoryItem.item} in inventory`, 400);
+            }
+
             item.amount = item.quantity * inventoryItem.price;
             totalAmount += item.amount;
+
+            // Deduct the updated quantity from inventory
+            inventoryItem.quantity -= item.quantity;
+            await inventoryItem.save();
         }
 
         consumption.items = items;
