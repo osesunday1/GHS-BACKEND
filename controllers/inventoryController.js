@@ -5,41 +5,73 @@ const HttpError = require('../utils/httpError');
 // Create a new inventory item
 exports.createInventoryItem = async (req, res, next) => {
     try {
-        const { item, quantity, price } = req.body;
+        const { item, category, quantity, price } = req.body;
 
+       // Create a new inventory item
         const newItem = new InventoryModel({
             item,
+            category,
             quantity,
-            price
+            price,
         });
 
+        // Save to the database
         await newItem.save();
 
         res.status(201).json({
             success: true,
             message: 'Inventory item created successfully',
-            data: newItem
+            data: newItem,
         });
     } catch (error) {
-        return next(new HttpError('Creating inventory item failed, please try again', 500));
+        console.error('Error creating inventory item:', error);
+        return next(new HttpError('Creating inventory item failed, please try again.', 500));
     }
 };
 
-// Get all inventory items
+
+// Get all inventory items with pagination and filtering
 exports.getAllInventoryItems = async (req, res, next) => {
     try {
-        const items = await InventoryModel.find();
-
-        res.status(200).json({
-            success: true,
-            count: items.length,
-            data: items
-        });
+      const { item, category, page = 1, limit = 10 } = req.query;
+  
+      // Build the query object
+      const query = {};
+      if (item) {
+        query.item = { $regex: item, $options: 'i' }; // Case-insensitive search
+      }
+      if (category) {
+        query.category = category; // Exact match for category
+      }
+  
+      const pageNumber = parseInt(page, 10);
+      const limitNumber = parseInt(limit, 10);
+      const skip = (pageNumber - 1) * limitNumber;
+  
+      // Get the total count of matching items
+      const totalItems = await InventoryModel.countDocuments(query);
+  
+      // Fetch the matching items with pagination
+      const items = await InventoryModel.find(query)
+        .skip(skip)
+        .limit(limitNumber)
+        .sort({ createdAt: -1 }); // Fetch items matching query with pagination
+  
+      const totalPages = Math.ceil(totalItems / limitNumber);
+  
+      // Return the response
+      res.status(200).json({
+        success: true,
+        totalItems,
+        totalPages,
+        currentPage: pageNumber,
+        data: items,
+      });
     } catch (error) {
-        console.error('Error fetching inventory items:', error);
-        return next(new HttpError('Fetching inventory items failed, please try again', 500));
+      console.error('Error fetching inventory items:', error);
+      return next(new HttpError('Fetching inventory items failed, please try again', 500));
     }
-};
+  };
 
 // Get a single inventory item by ID
 exports.getInventoryItemById = async (req, res, next) => {

@@ -12,7 +12,7 @@ const {protect} = authController
 router
     .route(`/`)
     .post(protect, createBooking)
-    .get(protect, getAllBookings)
+    .get(protect,getAllBookings)
 
 router
     .route(`/:id`)

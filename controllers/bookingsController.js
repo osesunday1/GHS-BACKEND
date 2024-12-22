@@ -55,21 +55,40 @@ exports.createBooking = async (req, res, next) => {
 };
 
 // 2. Controller function to get all bookings
+// Get all bookings with pagination, search, and sorting
 exports.getAllBookings = async (req, res, next) => {
   try {
-    // Retrieve all bookings from the database
-    // Populate the 'guest' field with relevant details
-    const bookings = await BookingModel.find().populate('guest', 'firstName lastName email phone address');
+    const { page = 1, limit = 10, guestName } = req.query;
 
-    // Send the response with the bookings data
+    // Construct query object
+    const query = {};
+    if (guestName) {
+      query['guest.firstName'] = { $regex: guestName, $options: 'i' };
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+
+    // Fetch total bookings count
+    const totalBookings = await BookingModel.countDocuments(query);
+
+    // Fetch bookings with pagination and sorting (most recent first)
+    const bookings = await BookingModel.find(query)
+      .populate('guest', 'firstName lastName email phone') // Populate guest fields
+      .sort({ checkInDate: -1 }) // Sort by creation date (most recent first)
+      .skip(skip)
+      .limit(Number(limit));
+
     res.status(200).json({
       success: true,
-      count: bookings.length,
-      data: bookings
+      totalBookings,
+      totalPages: Math.ceil(totalBookings / limit),
+      currentPage: Number(page),
+      data: bookings,
     });
   } catch (err) {
-    // Pass the error to the error handling middleware
-    return next(new HttpError(`Retrieving bookings failed (${err.message})`, 400));
+    console.error('Error in getAllBookings:', err);
+    next(new HttpError('Failed to fetch bookings', 500));
   }
 };
 

@@ -9,6 +9,11 @@ const inventorySchema = new mongoose.Schema({
         required: [true, 'Item name is required'],
         trim: true,
     },
+    category: {
+        type: String,
+        enum: ['Perishable', 'Shelf-Stable'],
+        required: true,
+      },
     quantity: {
         type: Number,
         required: [true, 'Quantity is required'],
