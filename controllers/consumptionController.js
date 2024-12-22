@@ -49,23 +49,47 @@ exports.createConsumptionRecord = async (req, res, next) => {
 
 
 
-
-// Get all consumption records
+// === Get all consumption records with pagination and filtering
 exports.getAllConsumptionRecords = async (req, res, next) => {
     try {
+        const { page = 1, limit = 10, guestName } = req.query;
+
+        const skip = (page - 1) * limit;
+
+        // Fetch all consumption records with populated fields
         const consumptions = await ConsumptionModel.find()
             .populate('guestId')
-            .populate('items.inventoryItemId'); // Populate inventory items
+            .populate('items.inventoryItemId')
+            .sort({ createdAt: -1 });
+
+        // Filter records by guest name if provided
+        const filteredConsumptions = guestName
+            ? consumptions.filter((consumption) =>
+                consumption.guestId &&
+                `${consumption.guestId.firstName} ${consumption.guestId.lastName}`
+                    .toLowerCase()
+                    .includes(guestName.toLowerCase())
+            )
+            : consumptions;
+
+        const totalConsumptions = filteredConsumptions.length;
+
+        // Paginate the filtered records
+        const paginatedConsumptions = filteredConsumptions.slice(skip, skip + Number(limit));
 
         res.status(200).json({
             success: true,
-            count: consumptions.length,
-            data: consumptions
+            totalConsumptions,
+            totalPages: Math.ceil(totalConsumptions / limit),
+            currentPage: Number(page),
+            data: paginatedConsumptions,
         });
     } catch (error) {
+        console.error('Error fetching consumption records:', error);
         return next(new HttpError('Fetching consumption records failed, please try again', 500));
     }
 };
+
 
 // Get a specific consumption record by ID
 exports.getConsumptionRecordById = async (req, res, next) => {

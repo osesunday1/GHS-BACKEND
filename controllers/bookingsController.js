@@ -87,7 +87,6 @@ exports.getAllBookings = async (req, res, next) => {
       data: bookings,
     });
   } catch (err) {
-    console.error('Error in getAllBookings:', err);
     next(new HttpError('Failed to fetch bookings', 500));
   }
 };
@@ -96,7 +95,7 @@ exports.getAllBookings = async (req, res, next) => {
 // Controller function to update a booking
 exports.updateBooking = async (req, res, next) => {
   const bookingId = req.params.id;
-  const { checkInDate, checkOutDate, apartmentId, numberOfRooms, price, amountPaid, cautionFee } = req.body;
+  const { checkInDate, checkOutDate, apartmentId, numberOfRooms, price, amountPaid, cautionFee, apartmentName } = req.body;
 
   try {
     // Find the booking by ID
@@ -114,6 +113,7 @@ exports.updateBooking = async (req, res, next) => {
     booking.price = price || booking.price;
     booking.amountPaid = amountPaid || booking.amountPaid;
     booking.cautionFee = cautionFee || booking.cautionFee;
+    booking.apartmentName = apartmentName || booking.apartmentName;
 
     // Save the updated booking
     await booking.save();

@@ -43,6 +43,8 @@ exports.getAllInventoryItems = async (req, res, next) => {
       if (category) {
         query.category = category; // Exact match for category
       }
+
+      
   
       const pageNumber = parseInt(page, 10);
       const limitNumber = parseInt(limit, 10);
@@ -50,12 +52,15 @@ exports.getAllInventoryItems = async (req, res, next) => {
   
       // Get the total count of matching items
       const totalItems = await InventoryModel.countDocuments(query);
+      
   
       // Fetch the matching items with pagination
       const items = await InventoryModel.find(query)
         .skip(skip)
         .limit(limitNumber)
-        .sort({ createdAt: -1 }); // Fetch items matching query with pagination
+        .sort({ createdAt: 1 }); // Fetch items matching query with pagination
+
+        
   
       const totalPages = Math.ceil(totalItems / limitNumber);
   
