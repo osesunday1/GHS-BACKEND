@@ -151,287 +151,266 @@ exports.deleteBooking = async (req, res, next) => {
 };
 
 
-///////////////////////////////get total bookings\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-exports.getTotalBookings = async (req, res, next) => {
-  try {
-    const { period } = req.query; // 'daily', 'weekly', 'monthly'
-    
-    let matchStage = {};
 
-    if (period === 'daily') {
-      matchStage = { $dayOfYear: { $eq: new Date().getDayOfYear() } };
-    } else if (period === 'weekly') {
-      matchStage = { $week: { $eq: new Date().getWeek() } };
-    } else if (period === 'monthly') {
-      matchStage = { $month: { $eq: new Date().getMonth() + 1 } };
-    }
+//====== Total Monthly ernings card ====///
 
-    const totalBookings = await BookingModel.aggregate([
-      { $match: matchStage },
-      { $count: "totalBookings" }
-    ]);
+exports.getMonthlyRevenue = async (req, res, next) => {
+  const { year, month } = req.query;
 
-    res.status(200).json({ data: totalBookings[0]?.totalBookings || 0 });
-  } catch (err) {
-    return next(new HttpError(`Fetching total bookings failed: ${err.message}`, 500));
+  if (!year || isNaN(year) || !month || isNaN(month)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid or missing year and month parameters.",
+    });
   }
-};
 
-
-///////////////////////////////get total revenue\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-exports.getTotalRevenue = async (req, res, next) => {
   try {
-    const { period } = req.query; // 'daily', 'weekly', 'monthly'
-    
-    let matchStage = {};
+    const startDate = new Date(year, month - 1, 1); // Start of the month
+    const endDate = new Date(year, month, 0, 23, 59, 59); // End of the month
 
-    if (period === 'daily') {
-      matchStage = { $dayOfYear: { $eq: new Date().getDayOfYear() } };
-    } else if (period === 'weekly') {
-      matchStage = { $week: { $eq: new Date().getWeek() } };
-    } else if (period === 'monthly') {
-      matchStage = { $month: { $eq: new Date().getMonth() + 1 } };
-    }
-
-    const totalRevenue = await BookingModel.aggregate([
-      { $match: matchStage },
-      { $group: { _id: null, totalRevenue: { $sum: "$price" } } }
-    ]);
-
-    res.status(200).json({ data: totalRevenue[0]?.totalRevenue || 0 });
-  } catch (err) {
-    return next(new HttpError(`Fetching total revenue failed: ${err.message}`, 500));
-  }
-};
-
-
-///////////////////////////////get occupancy rate\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-exports.getOccupancyRate = async (req, res, next) => {
-  try {
-    const totalApartments = await ApartmentModel.countDocuments();
-
-    // Assuming you want to calculate occupancy for the current year
-    const startOfYear = new Date(new Date().getFullYear(), 0, 1); // January 1st of the current year
-    const endOfYear = new Date(new Date().getFullYear(), 11, 31); // December 31st of the current year
-
-    // Find total days in the year
-    const totalDaysInYear = (endOfYear - startOfYear) / (1000 * 60 * 60 * 24);
-
-    // Aggregate to calculate the total number of days apartments are occupied
-    const occupiedDays = await BookingModel.aggregate([
+    const data = await BookingModel.aggregate([
       {
         $match: {
-          checkInDate: { $gte: startOfYear, $lte: endOfYear },
-          checkOutDate: { $gte: startOfYear, $lte: endOfYear }
-        }
+          checkInDate: {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        },
+      },
+      {
+        $addFields: {
+          numberOfDays: {
+            $ceil: {
+              $divide: [
+                { $subtract: ["$checkOutDate", "$checkInDate"] },
+                1000 * 60 * 60 * 24, // Convert milliseconds to days
+              ],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          revenue: { $multiply: ["$numberOfDays", "$price"] }, // Calculate revenue
+        },
       },
       {
         $group: {
-          _id: null,
-          totalOccupiedDays: {
-            $sum: {
-              $subtract: [
-                { $min: [ "$checkOutDate", endOfYear ] },
-                { $max: [ "$checkInDate", startOfYear ] }
-              ]
-            }
+          _id: null, // Combine all bookings
+          totalRevenue: { $sum: "$revenue" }, // Sum the revenue across all bookings
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalRevenue: data.length > 0 ? data[0].totalRevenue : 0,
+      },
+    });
+  } catch (err) {
+    next(new Error(`Failed to fetch monthly revenue data: ${err.message}`));
+  }
+};
+
+
+///// ==== Controller to fetch monthly booking data for a specific year=====\\\\\
+exports.getMonthlyBookingComparison = async (req, res, next) => {
+  const { year } = req.query; // Year will be sent as a query parameter
+
+  try {
+    const bookings = await BookingModel.aggregate([
+      {
+        $match: {
+          checkInDate: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`)
           }
         }
-      }
-    ]);
-
-    // Calculate occupancy rate
-    const data = ((occupiedDays[0]?.totalOccupiedDays || 0) / (totalDaysInYear * totalApartments)) * 100;
-
-    res.status(200).json({ data });
-  } catch (err) {
-    return next(new HttpError(`Fetching occupancy rate failed: ${err.message}`, 500));
-  }
-};
-
-
-///////////////////////////////get booking duration\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-exports.getAverageBookingDuration = async (req, res, next) => {
-  try {
-    const avgDuration = await BookingModel.aggregate([
-      {
-        $group: {
-          _id: null,
-          averageDuration: { $avg: "$numberOfDays" }
-        }
-      }
-    ]);
-
-    res.status(200).json({ averageDuration: avgDuration[0]?.averageDuration || 0 });
-  } catch (err) {
-    return next(new HttpError(`Fetching average booking duration failed: ${err.message}`, 500));
-  }
-};
-
-
-///////////////////////////////get total guest\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-exports.getTotalGuests = async (req, res, next) => {
-  try {
-    const data = await GuestModel.countDocuments();
-
-    res.status(200).json({ data });
-  } catch (err) {
-    return next(new HttpError(`Fetching total guests failed: ${err.message}`, 500));
-  }
-};
-
-///////////////////////////////get repeat guest\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-exports.getRepeatGuests = async (req, res, next) => {
-  try {
-    const repeatGuests = await BookingModel.aggregate([
-      { $group: { _id: "$guest", bookings: { $sum: 1 } } },
-      { $match: { bookings: { $gt: 1 } } },
-      { $count: "repeatGuests" }
-    ]);
-
-    res.status(200).json({ data: repeatGuests[0]?.repeatGuests || 0 });
-  } catch (err) {
-    return next(new HttpError(`Fetching repeat guests failed: ${err.message}`, 500));
-  }
-};
-
-
-
-//////////////////////revenue per apartment\\\\\\\\\\\\\\\\\\\\\\
-exports.getRevenuePerApartment = async (req, res, next) => {
-  try {
-    // Get all apartments to ensure we return data for all of them
-    const apartments = await ApartmentModel.find().select('name');
-
-    // Aggregate bookings by apartment and by month
-    const revenueData = await BookingModel.aggregate([
+      },
       {
         $group: {
           _id: {
-            apartment: '$apartmentName',
-            month: { $month: '$checkInDate' }
+            month: { $month: "$checkInDate" },
+            apartmentName: "$apartmentName"
           },
-          totalRevenue: { $sum: '$price' }
-        }
-      },
-      {
-        $sort: {
-          '_id.month': 1 // Sort by month
+          count: { $sum: 1 }
         }
       },
       {
         $group: {
-          _id: '$_id.apartment',
-          monthlyRevenue: {
+          _id: "$_id.month",
+          apartments: {
             $push: {
-              month: '$_id.month',
-              revenue: '$totalRevenue'
+              apartmentName: "$_id.apartmentName",
+              count: "$count"
             }
           }
         }
       },
-      {
-        $project: {
-          _id: 0,
-          apartmentName: '$_id',
-          monthlyRevenue: 1
-        }
-      }
+      { $sort: { _id: 1 } } // Sort by month
     ]);
 
-    // Prepare the data for the chart
-    const data = apartments.map(apartment => {
-      const revenueInfo = revenueData.find(rd => rd.apartmentName === apartment.name);
-      const monthlyRevenue = Array(12).fill(0); // Initialize all months with 0 revenue
-
-      if (revenueInfo) {
-        revenueInfo.monthlyRevenue.forEach(data => {
-          monthlyRevenue[data.month - 1] = data.revenue; // Fill the correct month index
-        });
-      }
-
-      return {
-        apartmentName: apartment.name,
-        revenue: monthlyRevenue
-      };
+    res.status(200).json({
+      success: true,
+      data: bookings
     });
-
-    // Send the response with the aggregated data
-    res.status(200).json({data: data});
   } catch (err) {
-    return next(new HttpError(`Fetching revenue per apartment failed: ${err.message}`, 500));
+    next(new Error(`Fetching booking comparison failed: ${err.message}`));
   }
-};
+}
 
-/////////////////////////////total amount generated each month\\\\\\\
 
-exports.getTotalAmountPaidPerMonth = async (req, res, next) => {
+//============== Get Monthly Revenue ==========////
+
+exports.getMonthlyRevenueByApartment = async (req, res, next) => {
+  const { year } = req.query;
+
+  if (!year || isNaN(year)) {
+    return res.status(400).json({ success: false, message: "Invalid or missing year parameter." });
+  }
+
   try {
-    // Aggregate bookings by month and sum the amountPaid field
-    const monthlyPayments = await BookingModel.aggregate([
+    const startDate = new Date(`${year}-01-01`);
+    const endDate = new Date(`${year}-12-31`);
+
+    const data = await BookingModel.aggregate([
+      {
+        $match: {
+          checkInDate: {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        },
+      },
+      {
+        $addFields: {
+          numberOfDays: {
+            $ceil: {
+              $divide: [
+                { $subtract: ["$checkOutDate", "$checkInDate"] },
+                1000 * 60 * 60 * 24, // Convert milliseconds to days
+              ],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          month: { $month: "$checkInDate" },
+          apartmentName: 1,
+          revenue: { $multiply: ["$numberOfDays", "$price"] },
+        },
+      },
       {
         $group: {
-          _id: { month: { $month: '$checkInDate' } },
-          totalAmountPaid: { $sum: '$amountPaid' }
-        }
+          _id: {
+            month: "$month",
+            apartmentName: "$apartmentName",
+          },
+          totalRevenue: { $sum: "$revenue" },
+        },
       },
       {
-        $sort: {
-          '_id.month': 1 // Sort by month (January to December)
-        }
+        $group: {
+          _id: "$_id.month",
+          apartments: {
+            $push: {
+              apartmentName: "$_id.apartmentName",
+              totalRevenue: "$totalRevenue",
+            },
+          },
+        },
       },
       {
-        $project: {
-          _id: 0,
-          month: '$_id.month',
-          totalAmountPaid: 1
-        }
-      }
+        $sort: { _id: 1 }, // Sort by month
+      },
     ]);
 
-    // Create an array with 12 elements for each month initialized with 0
-    const monthlyData = Array(12).fill(0);
-
-    // Populate the monthlyData array with the aggregated values
-    monthlyPayments.forEach(payment => {
-      monthlyData[payment.month - 1] = payment.totalAmountPaid; // month - 1 to match array index (0-based)
-    });
-
-    // Send the response with the aggregated data
-    res.status(200).json({ data: monthlyData });
+    res.status(200).json({ success: true, data });
   } catch (err) {
-    return next(new HttpError(`Fetching total amount paid per month failed: ${err.message}`, 500));
+    next(new Error(`Failed to fetch monthly revenue data: ${err.message}`));
   }
 };
 
+//====== get monthly booking===///
 
+exports.MonthlyBookingsChart = async (req, res, next) => {
+  const { year, month, expectedBookings } = req.query;
 
+  if (!year || !month || isNaN(year) || isNaN(month) || !expectedBookings || isNaN(expectedBookings)) {
+    return res.status(400).json({
+      success: false,
+      message: "Year, month, and expectedBookings are required and must be valid numbers.",
+    });
+  }
 
-
-
-
-  /* new booking
-  exports.createBooking = async (req, res, next) => {
   try {
-    const { guestName, checkInDate, checkOutDate, roomName, rooms } = req.body;
+    const startDate = new Date(year, month - 1, 1); // First day of the month
+    const endDate = new Date(year, month, 0, 23, 59, 59); // Last day of the month
 
-    const newBooking = new BookingModel({
-      guestName,
-      checkInDate,
-      checkOutDate,
-      roomName,
-      rooms,
+    const totalBookings = await BookingModel.countDocuments({
+      checkInDate: { $gte: startDate, $lte: endDate },
     });
 
-    await newBooking.save();
-
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: 'Booking created successfully',
-      data: newBooking,
+      data: {
+        totalBookings,
+        expectedBookings: parseInt(expectedBookings, 10),
+      },
     });
-  } catch (error) {
-    return next(new HttpError(`Creating booking failed (${err})`, 500))
+  } catch (err) {
+    next(new Error(`Failed to fetch monthly bookings: ${err.message}`));
   }
 };
-  */
+
+
+// ==== monthly occupied dates ====
+exports.getMonthlyOccupiedDates = async (req, res, next) => {
+  const { year, month, expectedDays } = req.query;
+
+  if (!year || !month || isNaN(year) || isNaN(month) || !expectedDays || isNaN(expectedDays)) {
+    return res.status(400).json({
+      success: false,
+      message: "Year, month, and expectedDays are required and must be valid numbers.",
+    });
+  }
+
+  try {
+    const startDate = new Date(year, month - 1, 1); // First day of the month
+    const endDate = new Date(year, month, 0, 23, 59, 59); // Last day of the month
+
+    // Fetch bookings that overlap with the given month
+    const bookings = await BookingModel.find({
+      $or: [
+        { checkInDate: { $gte: startDate, $lte: endDate } },
+        { checkOutDate: { $gte: startDate, $lte: endDate } },
+        { checkInDate: { $lte: startDate }, checkOutDate: { $gte: endDate } },
+      ],
+    });
+
+    // Calculate the number of occupied dates
+    let totalOccupiedDates = 0;
+
+    bookings.forEach((booking) => {
+      const bookingStart = booking.checkInDate < startDate ? startDate : booking.checkInDate;
+      const bookingEnd = booking.checkOutDate > endDate ? endDate : booking.checkOutDate;
+
+      const diffTime = Math.abs(bookingEnd - bookingStart);
+      const occupiedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Convert milliseconds to days
+      totalOccupiedDates += occupiedDays;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalOccupiedDates,
+        expectedDays: parseInt(expectedDays, 10),
+      },
+    });
+  } catch (err) {
+    next(new Error(`Failed to fetch monthly occupied dates: ${err.message}`));
+  }
+};
+

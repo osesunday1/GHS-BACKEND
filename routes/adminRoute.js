@@ -4,42 +4,32 @@ const bookingController = require('./../controllers/bookingsController.js');
 
 // Destructure the admin-related controllers
 const {
-  getTotalBookings,
-  getTotalRevenue,
-  getOccupancyRate,
-  getAverageBookingDuration,
-  getTotalGuests,
-  getRepeatGuests,
-  getRevenuePerApartment,
-  getTotalAmountPaidPerMonth
+  getMonthlyRevenue,
+  getMonthlyBookingComparison,
+  getMonthlyRevenueByApartment,
+  MonthlyBookingsChart,
+  getMonthlyOccupiedDates
 } = bookingController;
 
 //Admin Routes
 
-// Route to get total bookings over a specified period
-router.get('/bookings/total', getTotalBookings);
 
-// Route to get total revenue over a specified period
-router.get('/revenue/total', getTotalRevenue);
 
-// Route to get occupancy rate of all apartments
-router.get('/occupancy-rate', getOccupancyRate);
+// Route to get monthly booking comparison
+router.get('/monthly-booking-comparison', getMonthlyBookingComparison); // New Route
 
-// Route to get average booking duration
-router.get('/booking/average-duration', getAverageBookingDuration);
+// Route to get monthly revenue data for each apartment
+router.get('/monthly-revenue-by-apartment', getMonthlyRevenueByApartment);
 
-// Route to get total unique guests
-router.get('/guests/total', getTotalGuests);
+//get monthly booking
+router.get('/bookings/monthly-total', MonthlyBookingsChart);
 
-// Route to get repeat guests
-router.get('/guests/repeat', getRepeatGuests);
 
-// Route to get revenue per apartment
-router.get('/revenue-per-apartment', getRevenuePerApartment);
+// Route for monthly occupied dates
+router.get('/bookings/monthly-occupied-dates', getMonthlyOccupiedDates);
 
-// Route to get amount generated each month
-router.get('/total-amount-paid-per-month', getTotalAmountPaidPerMonth);
-
+// Route for monthly revenue
+router.get('/bookings/monthly-revenue', getMonthlyRevenue);
 
 
 module.exports = router;
