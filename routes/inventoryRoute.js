@@ -1,28 +1,30 @@
 const express = require('express');
-const inventoryController = require('../controllers/inventoryController');
+const inventoryController = require('./../controllers/inventoryController');
 const router = express.Router();
 
 
 
 // Destructure the inventory-related controllers
 const {
-    createInventoryItem,
-    getAllInventoryItems,
-    getInventoryItemById,
-    updateInventoryItem,
-    deleteInventoryItem
+    createInventoryRecord,
+    getAllInventoryRecords,
+    getInventoryRecordById,
+    updateInventoryRecord,
+    deleteInventoryRecord
   } = inventoryController;
 
 
+// Route to create a new inventory record
 router
     .route('/')
-    .post(createInventoryItem)
-    .get(getAllInventoryItems);
+    .post(createInventoryRecord)
+    .get(getAllInventoryRecords);  // Optionally, you can list all inventory records
 
+// Route to get, update, or delete a specific inventory record by ID
 router
     .route('/:id')
-    .get(getInventoryItemById)
-    .put(updateInventoryItem)
-    .delete(deleteInventoryItem);
+    .get(getInventoryRecordById)
+    .put(updateInventoryRecord)
+    .delete(deleteInventoryRecord);
 
 module.exports = router;

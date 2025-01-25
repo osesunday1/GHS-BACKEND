@@ -7,8 +7,9 @@ const bookingsRoutes = require('./routes/bookingsRoute');
 const apartmentRoutes= require('./routes/apartmentsRoute');
 const guestRoutes= require('./routes/guestRoute');
 const adminRoutes= require('./routes/adminRoute');
+const productRoutes= require('./routes/productRoute');
 const inventoryRoutes= require('./routes/inventoryRoute');
-const consumptionRoutes= require('./routes/consumptionRoute');
+const expenseRoutes = require('./routes/expenseRoute');
 const userRoutes= require('./routes/userRoutes')
 const staffTimeTable= require('./routes/staffTimetableRoute')
 const emailRoutes = require('./routes/emailRoute');  // Add the email route here
@@ -54,8 +55,9 @@ app.use('/api/v1/bookings', bookingsRoutes);
 app.use('/api/v1/apartments', apartmentRoutes);
 app.use('/api/v1/guests', guestRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/product', productRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
-app.use('/api/v1/consumption', consumptionRoutes);
+app.use('/api/v1/expenses', expenseRoutes);
 app.use('/api/v1/email', emailRoutes);
 app.use('/api/v1/timetable', staffTimeTable);
 

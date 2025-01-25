@@ -1,143 +1,208 @@
+const mongoose = require('mongoose');
 const InventoryModel = require('../model/inventoryModel');
+const ProductModel = require('../model/productModel');
 const HttpError = require('../utils/httpError');
 
-
-// Create a new inventory item
-exports.createInventoryItem = async (req, res, next) => {
+// Create a new inventory record
+exports.createInventoryRecord = async (req, res, next) => {
     try {
-        const { item, category, quantity, price } = req.body;
+        const { guestId, items } = req.body;
+        let totalAmount = 0;
 
-       // Create a new inventory item
-        const newItem = new InventoryModel({
-            item,
-            category,
-            quantity,
-            price,
+        // Check if each product item exists and calculate the amount
+        for (const item of items) {
+            const productItem = await ProductModel.findById(item.productItemId);
+            if (!productItem) {
+                throw new HttpError(`product item with ID ${item.productItemId} not found`, 404);
+            }
+            if (productItem.quantity < item.quantity) {
+                throw new HttpError(`Not enough quantity of ${productItem.item} in product`, 400);
+            }
+
+            item.amount = item.quantity * productItem.price;
+            totalAmount += item.amount;
+
+            // Deduct item quantity from product
+            productItem.quantity -= item.quantity;
+            await productItem.save();
+        }
+
+        // Create the inventory record
+        const newInventory = new InventoryModel({
+            guestId: guestId,
+            items: items,
+            totalAmount: totalAmount, // Store the calculated total amount
         });
 
-        // Save to the database
-        await newItem.save();
+        await newInventory.save();
 
         res.status(201).json({
             success: true,
-            message: 'Inventory item created successfully',
-            data: newItem,
+            message: 'Inventory record created successfully',
+            data: newInventory
         });
     } catch (error) {
-        console.error('Error creating inventory item:', error);
-        return next(new HttpError('Creating inventory item failed, please try again.', 500));
+        return next(new HttpError(error.message || 'Creating inventory record failed, please try again', 500));
     }
 };
 
 
-// Get all inventory items with pagination and filtering
-exports.getAllInventoryItems = async (req, res, next) => {
+
+
+// === Get all inventory records with pagination and filtering
+exports.getAllInventoryRecords = async (req, res, next) => {
     try {
-      const { item, category, page = 1, limit = 10 } = req.query;
-  
-      // Build the query object
-      const query = {};
-      if (item) {
-        query.item = { $regex: item, $options: 'i' }; // Case-insensitive search
-      }
-      if (category) {
-        query.category = category; // Exact match for category
-      }
+        const { page = 1, limit = 10, guestName } = req.query;
 
-      
-  
-      const pageNumber = parseInt(page, 10);
-      const limitNumber = parseInt(limit, 10);
-      const skip = (pageNumber - 1) * limitNumber;
-  
-      // Get the total count of matching items
-      const totalItems = await InventoryModel.countDocuments(query);
-      
-  
-      // Fetch the matching items with pagination
-      const items = await InventoryModel.find(query)
-        .skip(skip)
-        .limit(limitNumber)
-        .sort({ createdAt: 1 }); // Fetch items matching query with pagination
+        const skip = (page - 1) * limit;
 
-        
-  
-      const totalPages = Math.ceil(totalItems / limitNumber);
-  
-      // Return the response
-      res.status(200).json({
-        success: true,
-        totalItems,
-        totalPages,
-        currentPage: pageNumber,
-        data: items,
-      });
-    } catch (error) {
-      console.error('Error fetching inventory items:', error);
-      return next(new HttpError('Fetching inventory items failed, please try again', 500));
-    }
-  };
+        // Fetch all inventory records with populated fields
+        const inventories = await InventoryModel.find()
+            .populate('guestId')
+            .populate('items.productItemId')
+            .sort({ createdAt: -1 });
 
-// Get a single inventory item by ID
-exports.getInventoryItemById = async (req, res, next) => {
-    try {
-        const item = await InventoryModel.findById(req.params.id);
+        // Filter records by guest name if provided
+        const filteredInventories = guestName
+            ? inventories.filter((inventory) =>
+                inventory.guestId &&
+                `${inventory.guestId.firstName} ${inventory.guestId.lastName}`
+                    .toLowerCase()
+                    .includes(guestName.toLowerCase())
+            )
+            : inventories;
 
-        if (!item) {
-            return next(new HttpError('Inventory item not found', 404));
-        }
+        const totalInventories = filteredInventories.length;
+
+        // Paginate the filtered records
+        const paginatedInventories = filteredInventories.slice(skip, skip + Number(limit));
 
         res.status(200).json({
             success: true,
-            data: item
+            totalInventories,
+            totalPages: Math.ceil(totalInventories / limit),
+            currentPage: Number(page),
+            data: paginatedInventories,
         });
     } catch (error) {
-        console.error('Error fetching inventory item:', error);
-        return next(new HttpError('Fetching inventory item failed, please try again', 500));
+        console.error('Error fetching inventory records:', error);
+        return next(new HttpError('Fetching inventory records failed, please try again', 500));
     }
 };
 
-// Update an inventory item
-exports.updateInventoryItem = async (req, res, next) => {
+
+// Get a specific inventory record by ID
+exports.getInventoryRecordById = async (req, res, next) => {
     try {
-        const { item, quantity, price } = req.body;
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return next(new HttpError('Invalid inventory record ID', 400));
+        }
 
-        const updatedItem = await InventoryModel.findByIdAndUpdate(
-            req.params.id,
-            { item, quantity, price },
-            { new: true, runValidators: true }
-        );
+        const inventory = await InventoryModel.findById(req.params.id)
+            .populate('guestId')
+            .populate('items.productItemId'); // Populate product items
 
-        if (!updatedItem) {
-            return next(new HttpError('Inventory item not found', 404));
+        if (!inventory) {
+            return next(new HttpError(`Inventory record not found: ${error}`, 404));
         }
 
         res.status(200).json({
             success: true,
-            message: 'Inventory item updated successfully',
-            data: updatedItem
+            data: inventory
         });
     } catch (error) {
-        console.error('Error updating inventory item:', error);
-        return next(new HttpError('Updating inventory item failed, please try again', 500));
+        return next(new HttpError( `Fetching inventory record failed, please try again: ${error}`, 500));
     }
 };
 
-// Delete an inventory item
-exports.deleteInventoryItem = async (req, res, next) => {
+// Update a specific inventory record by ID
+exports.updateInventoryRecord = async (req, res, next) => {
     try {
-        const item = await InventoryModel.findByIdAndDelete(req.params.id);
+        const { items } = req.body;
 
-        if (!item) {
-            return next(new HttpError('Inventory item not found', 404));
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return next(new HttpError('Invalid inventory record ID', 400));
         }
+
+        const inventory = await InventoryModel.findById(req.params.id);
+
+        if (!inventory) {
+            return next(new HttpError('Inventory record not found', 404));
+        }
+
+        // Revert product quantities based on the original inventory record
+        for (const originalItem of inventory.items) {
+            const productItem = await ProductModel.findById(originalItem.productItemId);
+            if (productItem) {
+                productItem.quantity += originalItem.quantity;
+                await productItem.save();
+            }
+        }
+
+        // Update items with new quantities and recalculate total amount
+        let totalAmount = 0;
+
+        for (const item of items) {
+            const productItem = await ProductModel.findById(item.productItemId);
+            if (!productItem) {
+                return next(new HttpError(`product item with ID ${item.productItemId} not found`, 404));
+            }
+            if (productItem.quantity < item.quantity) {
+                throw new HttpError(`Not enough quantity of ${productItem.item} in product`, 400);
+            }
+
+            item.amount = item.quantity * productItem.price;
+            totalAmount += item.amount;
+
+            // Deduct the updated quantity from product
+            productItem.quantity -= item.quantity;
+            await productItem.save();
+        }
+
+        inventory.items = items;
+        inventory.totalAmount = totalAmount;
+
+        await inventory.save();
 
         res.status(200).json({
             success: true,
-            message: 'Inventory item deleted successfully'
+            message: 'Inventory record updated successfully',
+            data: inventory
         });
     } catch (error) {
-        console.error('Error deleting inventory item:', error);
-        return next(new HttpError('Deleting inventory item failed, please try again', 500));
+        return next(new HttpError(error.message || 'Updating inventory record failed, please try again', 500));
+    }
+};
+
+// Delete a specific inventory record by ID
+exports.deleteInventoryRecord = async (req, res, next) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return next(new HttpError('Invalid inventory record ID', 400));
+        }
+
+        const inventory = await InventoryModel.findById(req.params.id);
+
+        if (!inventory) {
+            return next(new HttpError('Inventory record not found', 404));
+        }
+
+        // Restore the quantity in product for each item
+        for (const item of inventory.items) {
+            const productItem = await ProductModel.findById(item.productItemId);
+            if (productItem) {
+                productItem.quantity += item.quantity;
+                await productItem.save();
+            }
+        }
+
+        await InventoryModel.deleteOne({ _id: req.params.id });
+
+        res.status(200).json({
+            success: true,
+            message: 'Inventory record deleted successfully'
+        });
+    } catch (error) {
+        return next(new HttpError('Deleting inventory record failed, please try again', 500));
     }
 };
