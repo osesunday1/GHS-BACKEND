@@ -30,54 +30,22 @@ exports.createProductItem = async (req, res, next) => {
 };
 
 
-// Get all Product items with optional pagination and filtering
+// Get all Product items (No pagination, No filtering)
 exports.getAllProductItems = async (req, res, next) => {
     try {
-        const { item, category, page = 1, limit } = req.query;
+        // Fetch all product items from the database
+        const items = await ProductModel.find().sort({ createdAt: -1 }).lean();
 
-        // Build the query object
-        const query = {};
-        if (item) {
-            query.item = { $regex: item, $options: 'i' }; // Case-insensitive search
-        }
-        if (category) {
-            query.category = category; // Exact match for category
-        }
-
-        const pageNumber = parseInt(page, 10);
-        const limitNumber = limit ? parseInt(limit, 10) : null; // Parse limit or set to null
-        const skip = limitNumber ? (pageNumber - 1) * limitNumber : 0;
-
-        // Get the total count of matching items
-        const totalItems = await ProductModel.countDocuments(query);
-
-        // Fetch the matching items with optional pagination
-        let items;
-        if (limitNumber) {
-            items = await ProductModel.find(query)
-                .skip(skip)
-                .limit(limitNumber)
-                .sort({ createdAt: 1 }); // Paginate if limit is provided
-        } else {
-            items = await ProductModel.find(query).sort({ createdAt: 1 }); // Fetch all without pagination
-        }
-
-        const totalPages = limitNumber ? Math.ceil(totalItems / limitNumber) : 1;
-
-        // Return the response
         res.status(200).json({
             success: true,
-            totalItems,
-            totalPages,
-            currentPage: limitNumber ? pageNumber : 1,
-            data: items,
+            totalItems: items.length,
+            data: items, // Send all product data to the frontend
         });
     } catch (error) {
         console.error('Error fetching Product items:', error);
-        return next(new HttpError('Fetching Product items failed, please try again', 500));
+        return next(new HttpError('Fetching Product items failed, please try again.', 500));
     }
 };
-
 
 
 // Get a single Product item by ID
