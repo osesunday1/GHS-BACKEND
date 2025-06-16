@@ -8,10 +8,9 @@ const apartmentRoutes= require('./routes/apartmentsRoute');
 const guestRoutes= require('./routes/guestRoute');
 const adminRoutes= require('./routes/adminRoute');
 const productRoutes= require('./routes/productRoute');
-const inventoryRoutes= require('./routes/inventoryRoute');
+const stockRoutes = require('./routes/stockRoutes');
 const expenseRoutes = require('./routes/expenseRoute');
 const userRoutes= require('./routes/userRoutes')
-const staffTimeTable= require('./routes/staffTimetableRoute')
 const emailRoutes = require('./routes/emailRoute');  // Add the email route here
 const cors = require('cors');
 
@@ -20,7 +19,11 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',  // ✅ Explicit origin
+  credentials: true                 // ✅ Allow cookies/headers
+}));
+
 app.use(cookieParser());
 app.use(express.json());
 
@@ -28,6 +31,7 @@ app.use(express.json());
 const connect = async () => {
     try {
         await mongoose.connect(process.env.MONGO);
+        //await mongoose.connection.collection('guests').dropIndex('email_1');
         console.log('connected to MongoDB');
     } catch (error) {
         console.error('Error connecting to MongoDB:', error);
@@ -56,10 +60,9 @@ app.use('/api/v1/apartments', apartmentRoutes);
 app.use('/api/v1/guests', guestRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/product', productRoutes);
-app.use('/api/v1/inventory', inventoryRoutes);
+app.use('/api/v1/stock', stockRoutes);
 app.use('/api/v1/expenses', expenseRoutes);
 app.use('/api/v1/email', emailRoutes);
-app.use('/api/v1/timetable', staffTimeTable);
 
 
 // If no route is found

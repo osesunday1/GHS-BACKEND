@@ -20,7 +20,7 @@ router.get('/users', getAllUsers)
 
 
 router.patch('/updateMe', authController.protect, updateMe)
-router.delete('/deleteMe', authController.protect, deleteMe)
+router.delete('/deleteMe/:id', authController.protect, deleteMe)
 
 
 module.exports = router;

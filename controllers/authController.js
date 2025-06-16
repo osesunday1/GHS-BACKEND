@@ -89,15 +89,12 @@ exports.protect= async(req, res, next)=>{
 
             //2) Verify token
         const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET)
-        console.log('Decoded JWT:', decoded);
 
             //3) check if user still exists
         const freshUser= await UserModel.findById(decoded.id)
         if(!freshUser){
             return next(new HttpError(`The owner of this token does no longer exist`, 401));
         }
-
-        console.log('User password changed at:', freshUser.passwordChangedAt);
 
             //4) if user changed password after the token was issued
        if (freshUser.changedPasswordAfter(decoded.iat)){

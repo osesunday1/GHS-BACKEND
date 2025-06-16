@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const guestController= require('./../controllers/guestController')
+const upload = require('../middleware/upload.js');
+
 
 
 const {getAllGuests, updateGuest, deleteGuest} = guestController
@@ -12,7 +14,7 @@ router
 
 router
     .route(`/:id`)
-    .put(updateGuest)
+    .put(upload.single('photo'), updateGuest)
     .delete(deleteGuest);
 
 

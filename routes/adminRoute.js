@@ -1,35 +1,40 @@
 const express = require('express');
 const router = express.Router();
-const bookingController = require('./../controllers/bookingsController.js');
+const adminCotroller = require('./../controllers/adminController.js');
 
-// Destructure the admin-related controllers
+
+
+
 const {
-  getMonthlyRevenue,
-  getMonthlyBookingComparison,
-  getMonthlyRevenueByApartment,
-  MonthlyBookingsChart,
-  getMonthlyOccupiedDates
-} = bookingController;
+   getTotalBookings,
+   getTotalRevenue,
+   getAverageLengthOfStay,
+   getRepeatGuests,
+   getRevenuePerApartment,
+   getTopProductsSold,
+   getProductSalesRevenue,
+   getProductProfit,
+   getStockTurnoverRate,
+   getLowStockAlerts
+  } = adminCotroller
 
 //Admin Routes
 
 
 
 // Route to get monthly booking comparison
-router.get('/monthly-booking-comparison', getMonthlyBookingComparison); // New Route
+router.get('/total-bookings', getTotalBookings); // New Route
+router.get('/total-revenue', getTotalRevenue);
+router.get('/averageLengthofStay', getAverageLengthOfStay);
+router.get('/repeatGuest', getRepeatGuests);
+router.get('/revenuePerApartment', getRevenuePerApartment);
+router.get('/top5-products', getTopProductsSold);
+router.get('/product-sales-revenue', getProductSalesRevenue);
+router.get('/product-profit', getProductProfit);
+router.get('/stock-turnover', getStockTurnoverRate);
+router.get('/low-stock-alerts', getLowStockAlerts);
 
-// Route to get monthly revenue data for each apartment
-router.get('/monthly-revenue-by-apartment', getMonthlyRevenueByApartment);
 
-//get monthly booking
-router.get('/bookings/monthly-total', MonthlyBookingsChart);
-
-
-// Route for monthly occupied dates
-router.get('/bookings/monthly-occupied-dates', getMonthlyOccupiedDates);
-
-// Route for monthly revenue
-router.get('/bookings/monthly-revenue', getMonthlyRevenue);
 
 
 module.exports = router;

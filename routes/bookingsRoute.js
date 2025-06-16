@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bookingController= require('./../controllers/bookingsController.js')
 const authController= require('./../controllers/authController.js')
+const upload = require('../middleware/upload.js');
 
 
 const {createBooking, getAllBookings, updateBooking, deleteBooking} = bookingController
@@ -11,7 +12,7 @@ const {protect} = authController
 
 router
     .route(`/`)
-    .post(protect,createBooking)
+    .post(protect, upload.single('photo'), createBooking)
     .get(protect,getAllBookings)
 
 router

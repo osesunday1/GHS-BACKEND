@@ -1,28 +1,27 @@
 const express = require('express');
-const productController = require('../controllers/productController');
 const router = express.Router();
 
-
-
-// Destructure the Product-related controllers
 const {
-    createProductItem,
-    getAllProductItems,
-    getProductItemById,
-    updateProductItem,
-    deleteProductItem
-  } = productController;
+  getProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} = require('../controllers/productController');
 
+// GET all products
+router.get('/', getProducts);
 
-router
-    .route('/')
-    .post(createProductItem)
-    .get(getAllProductItems);
+// GET single product by ID
+router.get('/:id', getProductById);
 
-router
-    .route('/:id')
-    .get(getProductItemById)
-    .put(updateProductItem)
-    .delete(deleteProductItem);
+// POST create new product
+router.post('/', createProduct);
+
+// PUT update product
+router.put('/:id', updateProduct);
+
+// DELETE product
+router.delete('/:id', deleteProduct);
 
 module.exports = router;

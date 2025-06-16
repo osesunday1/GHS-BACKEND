@@ -9,15 +9,13 @@ const guestSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Last name is required']
   },
-  email: {
-    type: String,
-    unique: true,
-    match: [/.+@.+\..+/, 'Please enter a valid email address']
-  },
   phone: {
-    type: String,
-    required: [true, 'Phone number is required']
+    type: String
   },
+  photo: {
+  url: { type: String, default: '' },
+  public_id: { type: String, default: '' }
+}
 });
 
 const GuestModel = mongoose.model('Guest', guestSchema);

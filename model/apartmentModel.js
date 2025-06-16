@@ -9,7 +9,7 @@ const apartmentSchema = new mongoose.Schema({
   type: {
     type: String,
     required: [true, 'Apartment type is required'],
-    enum: ['studio', 'one-bedroom', 'two-bedroom', 'penthouse', '2-bed', '1-bed'], // Example types
+    enum: ['studio', 'one-bedroom', 'two-bedroom', 'penthouse', '2-bed', '1-bed'],
   },
   description: {
     type: String,

@@ -40,7 +40,6 @@ exports.sendEmail = async (req, res) => {
   try {
     // Send the email using Nodemailer
     let info = await transporter.sendMail(mailOptions);
-    console.log('Email sent: ' + info.response);
     res.status(200).json({ message: 'Reservation request sent successfully' });
   } catch (error) {
     console.error('Error sending email:', error); // Log error
