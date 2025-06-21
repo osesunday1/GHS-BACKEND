@@ -20,7 +20,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',  // ✅ Explicit origin
+  origin: '*',  // ✅ Explicit origin
   credentials: true                 // ✅ Allow cookies/headers
 }));
 
