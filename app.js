@@ -20,7 +20,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: '*',  // ✅ Explicit origin
+  origin: 'https://ghs-admin.vercel.app',  // ✅ Explicit origin
   credentials: true                 // ✅ Allow cookies/headers
 }));
 
