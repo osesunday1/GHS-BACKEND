@@ -18,10 +18,20 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+const allowedOrigins = [
+  'https://ghsapt.com',
+  'https://your-custom-domain.com'
+];
+
 app.use(cors({
-  origin: 'https://ghs-admin.vercel.app',  // ✅ Explicit origin
-  credentials: true                 // ✅ Allow cookies/headers
+  origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
 
 app.use(cookieParser());
