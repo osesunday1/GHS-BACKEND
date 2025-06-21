@@ -1,29 +1,58 @@
 const mongoose = require('mongoose');
 
 const expenseSchema = new mongoose.Schema({
-    description: {
-        type: String,
-        required: [true, 'Description is required'],
-        trim: true,
-    },
-    amount: {
-        type: Number,
-        required: [true, 'Amount is required'],
-        min: [0, 'Amount cannot be less than 0'],
-    },
-    category: {
-        type: String,
-        enum: ['Maintenance', 'Subscription', 'Utilities', 'Salaries', 'Miscellaneous', 'Laundry'],
-        required: [true, 'Category is required'],
-    },
-    date: {
-        type: Date,
-        default: Date.now,
-        required: true,
-    },
-}, { 
-    timestamps: true 
-});
+  title: {
+    type: String,
+    enum: [
+      'Electricity',
+      'Water',
+      'Internet',
+      'Fuel',
+      'Delivery Fee',
+      'Rent',
+      'Salary',
+      'Maintenance',
+      'Cleaning',
+      'Miscellaneous'
+    ],
+    required: true,
+  },
+  amount: {
+    type: Number,
+    required: true,
+  },
+  category: {
+    type: String,
+    enum: ['utilities', 'logistics', 'salary', 'rent', 'maintenance', 'cleaning', 'miscellaneous'],
+    required: true,
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'bank transfer', 'POS', 'mobile payment'],
+    default: 'cash',
+  },
+  paidTo: {
+    type: String,
+    enum: [
+      'Landlord',
+      'NEPA',
+      'Internet Provider',
+      'Employee',
+      'Supplier',
+      'Mechanic',
+      'Cleaner',
+      'Other'
+    ],
+    default: 'Other',
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+  note: {
+    type: String,
+    trim: true,
+  },
+}, { timestamps: true });
 
-const Expense = mongoose.model('Expense', expenseSchema);
-module.exports = Expense;
+module.exports = mongoose.model('Expense', expenseSchema);
