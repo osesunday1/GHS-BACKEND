@@ -20,7 +20,7 @@ const app = express();
 
 const allowedOrigins = [
   'https://ghsapt.com',
-  'https://your-custom-domain.com'
+  'https://ghs-admin.vercel.app'
 ];
 
 app.use(cors({
