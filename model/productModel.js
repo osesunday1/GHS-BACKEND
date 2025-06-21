@@ -4,7 +4,11 @@ const mongoose = require('mongoose');
 const productSchema = new mongoose.Schema({
 name: { type: String, required: true },
   sku: { type: String, unique: true },
-  category: String,
+  category: {
+    type: String,
+    enum: ['alcoholic drinks', 'non-alcoholic drinks', 'beverages', 'food items', 'toiletries'],
+    required: true,
+  },
   supplier: String,
   quantity: { type: Number, default: 0 },
   reorderLevel: { type: Number, default: 5 },
