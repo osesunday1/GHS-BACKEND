@@ -429,8 +429,8 @@ exports.getProductProfit = async (req, res, next) => {
   }
 };
 
-//Stock Turnover Rate How quickly products are selling out
-exports.getStockTurnoverRate = async (req, res, next) => {
+// Get stock turnover rate for each product and return top 5
+exports.getTopProductStockTurnoverRates = async (req, res, next) => {
   const { start, end } = req.query;
 
   try {
@@ -439,52 +439,60 @@ exports.getStockTurnoverRate = async (req, res, next) => {
     }
 
     const startDate = new Date(start);
-    const endDate = new Date(end);
+    const endDate = new Date(new Date(end).setHours(23, 59, 59, 999));
 
-    // 1. Total quantity sold during the period
-    const salesResult = await StockLog.aggregate([
+    // 1. Get total quantity sold per product
+    const sales = await StockLog.aggregate([
       {
         $match: {
           changeType: 'OUT',
-          date: { $gte: startDate, $lte: endDate }
-        }
+          date: { $gte: startDate, $lte: endDate },
+        },
       },
       {
         $group: {
-          _id: null,
-          totalQuantitySold: { $sum: '$quantityChanged' }
-        }
-      }
+          _id: '$productId',
+          totalSold: { $sum: '$quantityChanged' },
+        },
+      },
     ]);
 
-    const totalSold = salesResult[0]?.totalQuantitySold || 0;
+    // 2. Get current inventory quantity for all products
+    const products = await Product.find({}, 'name quantity');
 
-    // 2. Average inventory quantity (approximate as current average)
-    const inventoryResult = await Product.aggregate([
-      {
-        $group: {
-          _id: null,
-          avgInventory: { $avg: '$quantity' }
-        }
-      }
-    ]);
+    // 3. Merge sales and inventory, compute turnover
+    const turnoverData = sales.map(sale => {
+      const product = products.find(p => p._id.toString() === sale._id.toString());
+      if (!product) return null;
 
-    const avgInventory = inventoryResult[0]?.avgInventory || 0;
+      const avgInventory = product.quantity;
+      const turnoverRate = avgInventory > 0 ? sale.totalSold / avgInventory : 0;
 
-    const turnoverRate = avgInventory > 0 ? (totalSold / avgInventory).toFixed(2) : 0;
+      return {
+        productId: sale._id,
+        name: product.name,
+        totalSold: sale.totalSold,
+        averageInventory: avgInventory,
+        turnoverRate: parseFloat(turnoverRate.toFixed(2)),
+      };
+    }).filter(Boolean); // remove nulls
+
+    // 4. Sort and get top 5
+    const top5 = turnoverData
+      .sort((a, b) => b.turnoverRate - a.turnoverRate)
+      .slice(0, 5);
 
     res.status(200).json({
       success: true,
-      totalQuantitySold: totalSold,
-      averageInventory: avgInventory,
-      turnoverRate: parseFloat(turnoverRate),
       start: startDate,
-      end: endDate
+      end: endDate,
+      top5Products: top5,
     });
   } catch (err) {
     next(new HttpError(`Failed to calculate stock turnover rate: ${err.message}`, 500));
   }
 };
+
 
 //Low Stock Alerts
 exports.getLowStockAlerts = async (req, res, next) => {
@@ -507,21 +515,27 @@ exports.getLowStockAlerts = async (req, res, next) => {
 
 //Get total expenses
 exports.getTotalExpenses = async (req, res, next) => {
-  const { start, end } = req.query;
+  let { start, end } = req.query;
 
   try {
     if (!start || !end) {
       return next(new HttpError('Start date and end date are required.', 400));
     }
 
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    let startDate = new Date(start);
+    let endDate = new Date(new Date(end).setHours(23, 59, 59, 999)); // end of day
 
-    const result = await Expense.aggregate([
+    // Swap dates if in wrong order
+    if (startDate > endDate) {
+      const temp = startDate;
+      startDate = endDate;
+      endDate = temp;
+    }
+
+    // Total amount
+    const totalAgg = await Expense.aggregate([
       {
-        $match: {
-          date: { $gte: startDate, $lte: endDate }
-        }
+        $match: { date: { $gte: startDate, $lte: endDate } }
       },
       {
         $group: {
@@ -531,57 +545,39 @@ exports.getTotalExpenses = async (req, res, next) => {
       }
     ]);
 
-    const total = result[0]?.totalAmount || 0;
+    const total = totalAgg[0]?.totalAmount || 0;
+
+    // Breakdown by title
+    const breakdownAgg = await Expense.aggregate([
+      {
+        $match: { date: { $gte: startDate, $lte: endDate } }
+      },
+      {
+        $group: {
+          _id: '$title',
+          amount: { $sum: '$amount' }
+        }
+      },
+      {
+        $sort: { amount: -1 } // Optional: sort descending
+      }
+    ]);
+
+    const breakdown = breakdownAgg.map(item => ({
+      title: item._id,
+      amount: item.amount
+    }));
 
     res.status(200).json({
       success: true,
       totalExpenses: total,
       start: startDate,
-      end: endDate
+      end: endDate,
+      breakdown
     });
+
   } catch (err) {
     next(new HttpError(`Failed to calculate total expenses: ${err.message}`, 500));
   }
 };
 
-
-// total top 5 expenses made
-exports.getTopExpenseTitles = async (req, res, next) => {
-  const { start, end } = req.query;
-
-  try {
-    if (!start || !end) {
-      return next(new HttpError('Start and end dates are required.', 400));
-    }
-
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-
-    const result = await Expense.aggregate([
-      {
-        $match: {
-          date: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: '$title',
-          totalSpent: { $sum: '$amount' }
-        }
-      },
-      {
-        $sort: { totalSpent: -1 }
-      },
-      {
-        $limit: 5
-      }
-    ]);
-
-    res.status(200).json({
-      success: true,
-      topTitles: result
-    });
-  } catch (err) {
-    next(new HttpError(`Failed to fetch top expense titles: ${err.message}`, 500));
-  }
-};
