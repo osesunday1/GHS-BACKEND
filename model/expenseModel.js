@@ -5,13 +5,15 @@ const expenseSchema = new mongoose.Schema({
     type: String,
     enum: [
       'Electricity',
-      'Water',
+      'Laundry',
       'Internet',
+      'DSTV',
       'Fuel',
       'Delivery Fee',
       'Rent',
       'Salary',
       'Maintenance',
+      'Gas',
       'Cleaning',
       'Miscellaneous'
     ],
@@ -23,7 +25,7 @@ const expenseSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['utilities', 'logistics', 'salary', 'rent', 'maintenance', 'cleaning', 'miscellaneous'],
+    enum: ['utilities', 'logistics', 'salary','rent', 'maintenance', 'cleaning', 'miscellaneous'],
     required: true,
   },
   paymentMethod: {
