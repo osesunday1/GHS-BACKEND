@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const HttpError = require('../utils/httpError');
 const BookingModel = require('../model/bookingsModel');
 const StockLogModel= require('../model/StockLogModel');
+const Expense = require('../model/expenseModel');
 
 
 // Get total number of bookings between two dates
@@ -499,5 +500,88 @@ exports.getLowStockAlerts = async (req, res, next) => {
     });
   } catch (err) {
     next(new HttpError(`Failed to fetch low stock alerts: ${err.message}`, 500));
+  }
+};
+
+
+
+//Get total expenses
+exports.getTotalExpenses = async (req, res, next) => {
+  const { start, end } = req.query;
+
+  try {
+    if (!start || !end) {
+      return next(new HttpError('Start date and end date are required.', 400));
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    const result = await Expense.aggregate([
+      {
+        $match: {
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const total = result[0]?.totalAmount || 0;
+
+    res.status(200).json({
+      success: true,
+      totalExpenses: total,
+      start: startDate,
+      end: endDate
+    });
+  } catch (err) {
+    next(new HttpError(`Failed to calculate total expenses: ${err.message}`, 500));
+  }
+};
+
+
+// total top 5 expenses made
+exports.getTopExpenseTitles = async (req, res, next) => {
+  const { start, end } = req.query;
+
+  try {
+    if (!start || !end) {
+      return next(new HttpError('Start and end dates are required.', 400));
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    const result = await Expense.aggregate([
+      {
+        $match: {
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$title',
+          totalSpent: { $sum: '$amount' }
+        }
+      },
+      {
+        $sort: { totalSpent: -1 }
+      },
+      {
+        $limit: 5
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      topTitles: result
+    });
+  } catch (err) {
+    next(new HttpError(`Failed to fetch top expense titles: ${err.message}`, 500));
   }
 };

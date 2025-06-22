@@ -4,7 +4,6 @@ const adminCotroller = require('./../controllers/adminController.js');
 
 
 
-
 const {
    getTotalBookings,
    getTotalRevenue,
@@ -15,7 +14,9 @@ const {
    getProductSalesRevenue,
    getProductProfit,
    getStockTurnoverRate,
-   getLowStockAlerts
+   getLowStockAlerts,
+   getTotalExpenses,
+   getTopExpenseTitles,
   } = adminCotroller
 
 //Admin Routes
@@ -33,7 +34,8 @@ router.get('/product-sales-revenue', getProductSalesRevenue);
 router.get('/product-profit', getProductProfit);
 router.get('/stock-turnover', getStockTurnoverRate);
 router.get('/low-stock-alerts', getLowStockAlerts);
-
+router.get('/total-expenses', getTotalExpenses);
+router.get('/top-titles-expenses', getTopExpenseTitles);
 
 
 
