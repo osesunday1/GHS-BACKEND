@@ -4,7 +4,7 @@ const ApartmentModel = require('../model/apartmentModel');
 const HttpError = require('../utils/httpError');
 const cloudinary = require('cloudinary').v2;
 
-// 1. Controller function to create a booking
+// 1. Controller function to create a bookings
 exports.createBooking = async (req, res, next) => {
   try {
     const { firstName, lastName, phone, checkInDate, checkOutDate, apartmentId, numberOfRooms, price, amountPaid, cautionFee } = req.body;
