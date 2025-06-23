@@ -3,6 +3,7 @@ const HttpError = require('../utils/httpError');
 const BookingModel = require('../model/bookingsModel');
 const StockLogModel= require('../model/StockLogModel');
 const Expense = require('../model/expenseModel');
+const ProductModel = require('../model/productModel')
 
 
 // Get total number of bookings between two dates
@@ -223,10 +224,30 @@ exports.getRepeatGuests = async (req, res, next) => {
 
 // Get total revenue per apartment (numberOfDays * price)
 exports.getRevenuePerApartment = async (req, res, next) => {
+  const { start, end } = req.query;
+
   try {
+    if (!start || !end) {
+      return next(new HttpError('Start and end dates are required.', 400));
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (isNaN(startDate) || isNaN(endDate)) {
+      return next(new HttpError('Invalid date format.', 400));
+    }
+
     const result = await BookingModel.aggregate([
       {
-        // Compute numberOfDays from checkIn/checkOut
+        // Filter by date range
+        $match: {
+          checkInDate: { $gte: startDate },
+          checkOutDate: { $lte: endDate }
+        }
+      },
+      {
+        // Compute numberOfDays and totalAmount
         $project: {
           apartmentName: 1,
           numberOfDays: {
@@ -241,14 +262,13 @@ exports.getRevenuePerApartment = async (req, res, next) => {
         }
       },
       {
-        // Compute totalAmount = numberOfDays * price
         $project: {
           apartmentName: 1,
           totalAmount: { $multiply: ['$numberOfDays', '$price'] }
         }
       },
       {
-        // Group by apartment and sum total revenue
+        // Group by apartment name
         $group: {
           _id: '$apartmentName',
           totalRevenue: { $sum: '$totalAmount' },
@@ -256,7 +276,6 @@ exports.getRevenuePerApartment = async (req, res, next) => {
         }
       },
       {
-        // Sort descending by revenue
         $sort: { totalRevenue: -1 }
       }
     ]);
@@ -497,9 +516,28 @@ exports.getTopProductStockTurnoverRates = async (req, res, next) => {
 //Low Stock Alerts
 exports.getLowStockAlerts = async (req, res, next) => {
   try {
-    const lowStockProducts = await Product.find({
-      $expr: { $lte: ['$quantity', '$reorderLevel'] }
-    });
+    const lowStockProducts = await ProductModel.aggregate([
+      {
+        $match: {
+          $expr: {
+            $lte: ['$quantity', '$reorderLevel']
+          }
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          sku: 1,
+          category: 1,
+          quantity: 1,
+          reorderLevel: 1,
+          supplier: 1
+        }
+      },
+      {
+        $sort: { quantity: 1 } // optional: sort by lowest quantity
+      }
+    ]);
 
     res.status(200).json({
       success: true,
@@ -510,7 +548,6 @@ exports.getLowStockAlerts = async (req, res, next) => {
     next(new HttpError(`Failed to fetch low stock alerts: ${err.message}`, 500));
   }
 };
-
 
 
 //Get total expenses
