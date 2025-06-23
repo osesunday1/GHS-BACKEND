@@ -29,7 +29,7 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // Find an existing guest by email or create a new one
-    let guest = new GuestModel({ firstName, lastName, phone, address, photo: photoData });
+    let guest = new GuestModel({ firstName, lastName, phone, photo: photoData });
     await guest.save(); 
 
     // Create a new booking linked to the guest and apartment
