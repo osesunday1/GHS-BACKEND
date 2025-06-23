@@ -7,7 +7,7 @@ const cloudinary = require('cloudinary').v2;
 // 1. Controller function to create a booking
 exports.createBooking = async (req, res, next) => {
   try {
-    const { firstName, lastName, phone, address, checkInDate, checkOutDate, apartmentId, numberOfRooms, price, amountPaid, cautionFee } = req.body;
+    const { firstName, lastName, phone, checkInDate, checkOutDate, apartmentId, numberOfRooms, price, amountPaid, cautionFee } = req.body;
 
     let photoData = null;
 
