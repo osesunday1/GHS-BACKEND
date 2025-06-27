@@ -409,7 +409,7 @@ exports.getProductProfit = async (req, res, next) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
 
-    const result = await StockLog.aggregate([
+    const result = await StockLogModel.aggregate([
       {
         $match: {
           changeType: 'OUT',

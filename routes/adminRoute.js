@@ -30,7 +30,7 @@ router.get('/repeatGuest', getRepeatGuests);
 router.get('/revenuePerApartment', getRevenuePerApartment);
 router.get('/top5-products', getTopProductsSold);
 router.get('/product-sales-revenue', getProductSalesRevenue);
-router.get('/product-profit', getProductProfit);
+router.get('/market-profit', getProductProfit);
 router.get('/product-turnover', getTopProductStockTurnoverRates);
 router.get('/low-stock-alerts', getLowStockAlerts);
 router.get('/total-expenses', getTotalExpenses);
