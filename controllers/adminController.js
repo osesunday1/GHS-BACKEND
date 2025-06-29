@@ -173,9 +173,27 @@ exports.getAverageLengthOfStay = async (req, res, next) => {
 // Get count of repeat guests using first + last name
 exports.getRepeatGuests = async (req, res, next) => {
   try {
+    const { start, end } = req.query;
+
+    if (!start || !end) {
+      return next(new HttpError('Start and end dates are required.', 400));
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (isNaN(startDate) || isNaN(endDate)) {
+      return next(new HttpError('Invalid date format.', 400));
+    }
+
     const result = await BookingModel.aggregate([
       {
-        // Populate guest reference so we can access name fields
+        $match: {
+          checkInDate: { $gte: startDate },
+          checkOutDate: { $lte: endDate }
+        }
+      },
+      {
         $lookup: {
           from: 'guests',
           localField: 'guest',
@@ -184,11 +202,9 @@ exports.getRepeatGuests = async (req, res, next) => {
         }
       },
       {
-        // Unwind the array returned by $lookup
         $unwind: '$guestInfo'
       },
       {
-        // Group by guest's full name
         $group: {
           _id: {
             firstName: '$guestInfo.firstName',
@@ -198,13 +214,11 @@ exports.getRepeatGuests = async (req, res, next) => {
         }
       },
       {
-        // Only keep guests who booked more than once
         $match: {
           bookingCount: { $gt: 1 }
         }
       },
       {
-        // Optional: sort by most frequent repeat guests
         $sort: { bookingCount: -1 }
       }
     ]);
@@ -214,12 +228,10 @@ exports.getRepeatGuests = async (req, res, next) => {
       repeatGuestCount: result.length,
       repeatGuests: result
     });
-
   } catch (err) {
     next(new HttpError(`Failed to fetch repeat guests: ${err.message}`, 500));
   }
 };
-
 
 
 // Get total revenue per apartment (numberOfDays * price)
