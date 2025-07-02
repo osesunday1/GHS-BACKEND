@@ -65,6 +65,20 @@ bookingSchema.virtual('amountLeftToPay').get(function() {
   return totalWithCaution - this.amountPaid;
 });
 
+//booking status
+bookingSchema.virtual('bookingStatus').get(function () {
+  const now = new Date();
+  if (now < this.checkInDate) {
+    return 'upcoming'; // Guest will check in later
+  } else if (now >= this.checkInDate && now <= this.checkOutDate) {
+    return 'in'; // Guest is currently staying
+  } else if (now > this.checkOutDate) {
+    return 'out'; // Guest has already checked out
+  }
+  return 'unknown';
+});
+
+
 // Ensure virtual fields are included when converting documents to JSON and objects
 bookingSchema.set('toJSON', { virtuals: true });
 bookingSchema.set('toObject', { virtuals: true });
