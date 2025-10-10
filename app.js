@@ -22,7 +22,8 @@ const allowedOrigins = [
   '*',
   'http://localhost:5173',
   'https://ghs-admin.vercel.app',
-  'https://ghsapt.com'
+  'https://ghsapt.com',
+  'https://jocular-stardust-462856.netlify.app'
 ];
 
 app.use(cors({
