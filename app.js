@@ -19,6 +19,7 @@ dotenv.config();
 const app = express();
 
 const allowedOrigins = [
+  '*',
   'http://localhost:5173',
   'https://ghs-admin.vercel.app',
   'https://ghsapt.com'
