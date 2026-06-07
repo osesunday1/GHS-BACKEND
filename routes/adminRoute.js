@@ -16,6 +16,7 @@ const {
    getTopProductStockTurnoverRates,
    getLowStockAlerts,
    getTotalExpenses,
+   getBookingStatusBreakdown,
   } = adminCotroller
 
 //Admin Routes
@@ -34,6 +35,7 @@ router.get('/market-profit', getProductProfit);
 router.get('/product-turnover', getTopProductStockTurnoverRates);
 router.get('/low-stock-alerts', getLowStockAlerts);
 router.get('/total-expenses', getTotalExpenses);
+router.get('/booking-status', getBookingStatusBreakdown);
 
 
 

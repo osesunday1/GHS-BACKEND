@@ -562,6 +562,51 @@ exports.getLowStockAlerts = async (req, res, next) => {
 };
 
 
+// Booking status breakdown (upcoming / in / out) for date range
+exports.getBookingStatusBreakdown = async (req, res, next) => {
+  const { start, end } = req.query;
+
+  try {
+    if (!start || !end) {
+      return next(new HttpError('Start and end dates are required.', 400));
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(new Date(end).setHours(23, 59, 59, 999));
+
+    const result = await BookingModel.aggregate([
+      {
+        $match: {
+          checkInDate: { $gte: startDate },
+          checkOutDate: { $lte: endDate },
+        },
+      },
+      {
+        $group: {
+          _id: '$bookingStatus',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const statusMap = { upcoming: 0, in: 0, out: 0 };
+    result.forEach(({ _id, count }) => {
+      if (_id in statusMap) statusMap[_id] = count;
+    });
+
+    res.status(200).json({
+      success: true,
+      upcoming: statusMap.upcoming,
+      in: statusMap.in,
+      out: statusMap.out,
+      total: statusMap.upcoming + statusMap.in + statusMap.out,
+    });
+  } catch (err) {
+    next(new HttpError(`Failed to fetch booking status: ${err.message}`, 500));
+  }
+};
+
+
 //Get total expenses
 exports.getTotalExpenses = async (req, res, next) => {
   let { start, end } = req.query;

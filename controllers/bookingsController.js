@@ -7,20 +7,12 @@ const cloudinary = require('cloudinary').v2;
 // 1. Controller function to create a bookings
 exports.createBooking = async (req, res, next) => {
   try {
-    const { firstName, lastName, phone, checkInDate, checkOutDate, apartmentId, numberOfRooms, price, amountPaid, cautionFee } = req.body;
-
-    let photoData = null;
-
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'guests',
-      });
-
-      photoData = {
-        url: result.secure_url,
-        public_id: result.public_id,
-      };
-    }
+    const {
+      guestId,
+      firstName, lastName, phone,
+      checkInDate, checkOutDate,
+      apartmentId, numberOfRooms, price, amountPaid, cautionFee
+    } = req.body;
 
     // Find the selected apartment by ID
     const apartment = await ApartmentModel.findById(apartmentId);
@@ -28,11 +20,27 @@ exports.createBooking = async (req, res, next) => {
       return next(new HttpError('Apartment not found', 404));
     }
 
-    // Find an existing guest by email or create a new one
-    let guest = new GuestModel({ firstName, lastName, phone, photo: photoData });
-    await guest.save(); 
+    let guest;
 
-    // Create a new booking linked to the guest and apartment
+    if (guestId) {
+      // Returning guest — reuse existing record, no new guest created
+      guest = await GuestModel.findById(guestId);
+      if (!guest) {
+        return next(new HttpError('Guest not found', 404));
+      }
+    } else {
+      // New guest — create record, upload photo if provided
+      let photoData = null;
+      if (req.file) {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'guests',
+        });
+        photoData = { url: result.secure_url, public_id: result.public_id };
+      }
+      guest = new GuestModel({ firstName, lastName, phone, photo: photoData });
+      await guest.save();
+    }
+
     const newBooking = new BookingModel({
       guest: guest._id,
       checkInDate,
@@ -48,10 +56,7 @@ exports.createBooking = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Booking created successfully',
-      data: {
-        booking: newBooking,
-        guest: guest
-      }
+      data: { booking: newBooking, guest }
     });
   } catch (err) {
     return next(new HttpError(`Creating booking failed (${err.message})`, 500));
