@@ -573,17 +573,28 @@ exports.getBookingStatusBreakdown = async (req, res, next) => {
 
     const startDate = new Date(start);
     const endDate = new Date(new Date(end).setHours(23, 59, 59, 999));
+    const now = new Date();
 
     const result = await BookingModel.aggregate([
       {
         $match: {
-          checkInDate: { $gte: startDate },
-          checkOutDate: { $lte: endDate },
+          checkInDate: { $gte: startDate, $lte: endDate },
+        },
+      },
+      {
+        $addFields: {
+          computedStatus: {
+            $cond: [
+              { $gt: ['$checkInDate', now] },
+              'upcoming',
+              { $cond: [{ $gt: [now, '$checkOutDate'] }, 'out', 'in'] },
+            ],
+          },
         },
       },
       {
         $group: {
-          _id: '$bookingStatus',
+          _id: '$computedStatus',
           count: { $sum: 1 },
         },
       },

@@ -6,7 +6,7 @@ name: { type: String, required: true },
   sku: { type: String, unique: true },
   category: {
     type: String,
-    enum: ['alcoholic drinks', 'non-alcoholic drinks', 'beverages', 'food items', 'toiletries'],
+    enum: ['alcoholic drinks', 'non-alcoholic drinks', 'beverages', 'food items', 'toiletries', 'snacks'],
     required: true,
   },
   supplier: String,
